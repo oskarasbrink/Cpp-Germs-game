@@ -1,0 +1,99 @@
+	ldi r16, HIGH(RAMEND)
+	out sph,r16
+	ldi r16, low(ramend)
+	out spl, r16
+	rcall HW_INIT
+	rcall SPI_INIT
+LOOP:
+	cbi portb,1
+	ldi r16,$00 ;blå
+	call SPI
+	call DELAY
+	ldi r16,$07 ;grön
+	call SPI
+	call DELAY
+	ldi r16,$70 ;röd
+	call SPI
+	call DELAY
+	ldi r16,$F1 ;mux
+	;com r16
+	call SPI
+	sbi portb,1
+	call DELAY
+	
+
+
+	ser r16
+	cbi portb,1
+	call SPI
+	call DELAY
+	call SPI
+	call DELAY
+	call SPI
+	call DELAY
+	call SPI
+	sbi portb,1
+	call DELAY
+	
+	cbi portb,1
+ldi r16,$70 ;blå
+	call SPI
+	call DELAY
+	ldi r16,$07 ;grön
+	call SPI
+	call DELAY
+	ldi r16,$07 ;röd
+	call SPI
+	call DELAY
+	ldi r16,$1F ;mux
+	;com r16
+	call SPI
+	call DELAY
+	sbi portb,1
+	jmp loop
+	
+	;rjmp END
+
+END:
+rjmp end
+
+
+
+
+
+DELAY:
+ldi r18,$FF
+DELAYFAN:
+dec r18
+brne DELAYFAN
+ldi r19, $FF
+DELAY2:
+dec r19
+brne DELAY2
+ret
+
+SPI:
+	;cbi portb,5 ; MOSI
+	;cbi portb,7 ; MASTERCLOCK
+
+	out SPDR,r16
+WAIT_TRANSMIT:
+	sbis SPSR,SPIF
+	rjmp WAIT_TRANSMIT
+	ret
+
+
+
+
+SPI_INIT:
+	; Enable SPI, Master, set clock rate fck/16
+	ldi r17,(1<<SPE)|(1<<MSTR)|(1<<SPR0)|(0<<SPR1)|(1<<SPIE)
+	out SPCR,r17
+	ret
+
+
+HW_INIT:
+	ser r16
+	out ddra, r16
+	out ddrb, r16
+	ret
