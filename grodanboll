@@ -1,0 +1,158 @@
+ .dseg
+ .org SRAM_START
+ MUX: .byte 1
+ BLUE: .byte 8
+ GREEN: .byte 8
+ RED: .byte 8
+
+ .cseg
+
+
+	 ldi r16, HIGH(RAMEND)
+	 out sph,r16
+	 ldi r16,LOW(RAMEND)
+	 out spl, r16
+	 rcall HW_INIT
+	 rcall SPI_INIT
+	 rcall STORE
+	 
+
+
+	 end:
+
+	 
+	 rcall PRINTER
+	 call DELAYWTF
+	 
+	 rjmp end
+
+
+PRINTER:
+	cbi portb,1
+	lds r16,MUX
+	ldi ZL,LOW(BLUE)
+	ldi ZH,HIGH(BLUE)
+	;blå
+	add ZL,r16
+	ld r16,Z
+	call SPI
+	;grön
+	subi ZL,-8
+	ld r16,Z
+	call SPI
+	;röd
+	subi ZL,-8
+	ld r16,Z
+	call SPI
+
+
+	call SHIFTER
+	
+	cbi portb,1
+	sbi portb,1
+	ret
+
+
+SHIFTER:
+
+	lds r17,MUX
+	inc r17
+
+	clr r16
+	sec
+SHIFTL:
+	ror r16
+	dec r17
+	brne SHIFTL
+	
+	com r16
+	call SPI
+	cbi PORTb,1
+	sbi portb,1
+	
+	lds r16, MUX
+	inc r16
+	sbrc r16,3
+	clr r16
+	sts MUX,r16
+
+	ret
+
+
+
+DELAY:
+	ldi r18,$FF
+DEC1:
+	dec r18
+	brne DEC1
+	ldi r19, $FF
+DEC2:
+	dec r19
+	brne DEC2
+	ret
+
+
+SPI:
+
+	out SPDR,r16
+WAIT_TRANSMIT:
+	sbis SPSR,SPIF
+	rjmp WAIT_TRANSMIT
+	ret
+
+
+STORE:
+	ldi ZL,LOW(BLUE)
+	ldi ZH,HIGH(BLUE)
+	ldi r16,$66
+	st z+,r16
+	subi zl,-8
+	;grön?
+	;st z+, r17
+	
+
+	subi zl,-8
+	st z+, r16
+	ldi r16,$08
+	sts red+5,r16
+	ret
+
+
+	
+
+
+
+
+
+ SPI_INIT:
+	ldi r17,(1<<SPE)|(1<<MSTR)|(1<<SPR0)|(0<<SPR1)|(0<<SPIE)|(1<<dord)
+	out SPCR,r17
+	ret
+
+
+HW_INIT:
+	
+	clr r16
+	sts MUX,r16
+	ldi r17, 24
+	ldi ZL,LOW(BLUE)
+	ldi ZH,HIGH(BLUE)
+	RESETLOOP:
+	st Z+, r16
+	dec r17
+	brne RESETLOOP
+
+	ser r16
+	out ddra, r16
+	out ddrb, r16
+	ret
+
+
+
+	DELAYWTF:
+	push r16
+	ldi r16,50
+	call DELAY
+	brne DELAYWTF
+	pop r16
+	ret
